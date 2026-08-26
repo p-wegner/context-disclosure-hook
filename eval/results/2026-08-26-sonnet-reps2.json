@@ -1,0 +1,292 @@
+[
+  {
+    "key": "bash",
+    "arm": "control",
+    "rep": 0,
+    "sid": "3f74ced0-e527-44b3-b02e-0908fd59f045",
+    "ms": 104270,
+    "cost": 0.21778,
+    "turns": 8,
+    "codename": "missing ❌",
+    "tokens": [
+      "CHANGES.md ❌",
+      "no console.log ✅"
+    ],
+    "diff": "diff --git a/backend/src/errors.ts b/backend/src/errors.ts\nindex 9e8e737..8ca857c 100644\n--- a/backend/src/errors.ts\n+++ b/backend/src/errors.ts\n@@ -3,4 +3,5 @@ export class AppError extends Error {\n }\n export const notFound = (what: string) => new AppError(\"BK-404\", `${what} not found`);\n export const invalid = (field: string) => new AppError(\"BK-422\", `invalid ${field}`);\n+export const forbidden = (action: string) => new AppError(\"BK-403\", `forbidden: ${action}`);\n export function isAppError(e: unknown): e is AppError { return e instanceof AppError; }\ndiff --git a/backend/src/server.ts b/backend/src/server.ts\nindex 07a8d6d..26df04e 100644\n--- a/backend/src/server.ts\n+++ b/backend/src/server.ts\n@@ -15,7 +15,10 @@ createServer((req, res) => {\n     const id = (req.url || \"/\").split(\"/\").pop() || \"\";\n     res.end(JSON.stringify(handleGetUser(id)));\n   } catch (e) {\n-    if (isAppError(e)) { res.statusCode = 404; res.end(JSON.stringify({ code: e.code })); }\n+    if (isAppError(e)) {\n+      res.statusCode = e.code === \"BK-403\" ? 403 : 404;\n+      res.end(JSON.stringify({ code: e.code }));\n+    }\n     else { log.error(\"unhandled\", { err: String(e) }); res.statusCode = 500; res.end(); }\n   }\n }).listen(0);\n M backend/src/errors.ts\n M backend/src/server.ts\n",
+    "tools": {
+      "PowerShell": 7
+    },
+    "nestedMemory": false,
+    "hookFired": false,
+    "transcript": "C:\\Users\\pwegner\\.claude\\projects\\C--projects-andrena-context-disclosure-hook\\3f74ced0-e527-44b3-b02e-0908fd59f045.jsonl",
+    "answerTail": "Added `forbidden(action)` (BK-403) to `backend/src/errors.ts`, and `server.ts` now maps `BK-403` to HTTP 403 (other AppErrors stay 404).",
+    "stderrTail": ""
+  },
+  {
+    "key": "bash",
+    "arm": "control",
+    "rep": 1,
+    "sid": "0324e66a-b348-4411-bd74-144af0440f09",
+    "ms": 56412,
+    "cost": 0.1054426,
+    "turns": 8,
+    "codename": "missing ❌",
+    "tokens": [
+      "CHANGES.md ❌",
+      "no console.log ✅"
+    ],
+    "diff": "diff --git a/backend/src/errors.ts b/backend/src/errors.ts\nindex 9e8e737..8ca857c 100644\n--- a/backend/src/errors.ts\n+++ b/backend/src/errors.ts\n@@ -3,4 +3,5 @@ export class AppError extends Error {\n }\n export const notFound = (what: string) => new AppError(\"BK-404\", `${what} not found`);\n export const invalid = (field: string) => new AppError(\"BK-422\", `invalid ${field}`);\n+export const forbidden = (action: string) => new AppError(\"BK-403\", `forbidden: ${action}`);\n export function isAppError(e: unknown): e is AppError { return e instanceof AppError; }\ndiff --git a/backend/src/server.ts b/backend/src/server.ts\nindex 07a8d6d..3cede30 100644\n--- a/backend/src/server.ts\n+++ b/backend/src/server.ts\n@@ -15,7 +15,7 @@ createServer((req, res) => {\n     const id = (req.url || \"/\").split(\"/\").pop() || \"\";\n     res.end(JSON.stringify(handleGetUser(id)));\n   } catch (e) {\n-    if (isAppError(e)) { res.statusCode = 404; res.end(JSON.stringify({ code: e.code })); }\n+    if (isAppError(e)) { res.statusCode = e.code === \"BK-403\" ? 403 : 404; res.end(JSON.stringify({ code: e.code })); }\n     else { log.error(\"unhandled\", { err: String(e) }); res.statusCode = 500; res.end(); }\n   }\n }).listen(0);\n M backend/src/errors.ts\n M backend/src/server.ts\n",
+    "tools": {
+      "PowerShell": 3,
+      "Edit": 4
+    },
+    "nestedMemory": false,
+    "hookFired": false,
+    "transcript": "C:\\Users\\pwegner\\.claude\\projects\\C--projects-andrena-context-disclosure-hook\\0324e66a-b348-4411-bd74-144af0440f09.jsonl",
+    "answerTail": "Added `forbidden(action)` (BK-403) to `backend/src/errors.ts` and made `server.ts` return 403 when the caught `AppError`'s code is `BK-403`, 404 otherwise.",
+    "stderrTail": ""
+  },
+  {
+    "key": "bash",
+    "arm": "hook",
+    "rep": 0,
+    "sid": "89414252-a64f-4005-aaa7-28300fdda051",
+    "ms": 48263,
+    "cost": 0.1266138,
+    "turns": 9,
+    "codename": "@kestrel ✅",
+    "tokens": [
+      "CHANGES.md ✅",
+      "no console.log ✅"
+    ],
+    "diff": "diff --git a/backend/CHANGES.md b/backend/CHANGES.md\nindex b5f350a..fe103c8 100644\n--- a/backend/CHANGES.md\n+++ b/backend/CHANGES.md\n@@ -1,4 +1,5 @@\n # backend changes (newest first)\n \n+- add forbidden() error factory, return 403 (src/errors.ts, src/server.ts)\n - add log helper (src/log.ts)\n - initial user endpoint (src/server.ts)\ndiff --git a/backend/src/errors.ts b/backend/src/errors.ts\nindex 9e8e737..a2bb20a 100644\n--- a/backend/src/errors.ts\n+++ b/backend/src/errors.ts\n@@ -3,4 +3,6 @@ export class AppError extends Error {\n }\n export const notFound = (what: string) => new AppError(\"BK-404\", `${what} not found`);\n export const invalid = (field: string) => new AppError(\"BK-422\", `invalid ${field}`);\n+/** @kestrel BK-403 */\n+export const forbidden = (action: string) => new AppError(\"BK-403\", `forbidden: ${action}`);\n export function isAppError(e: unknown): e is AppError { return e instanceof AppError; }\ndiff --git a/backend/src/server.ts b/backend/src/server.ts\nindex 07a8d6d..3cede30 100644\n--- a/backend/src/server.ts\n+++ b/backend/src/server.ts\n@@ -15,7 +15,7 @@ createServer((req, res) => {\n     const id = (req.url || \"/\").split(\"/\").pop() || \"\";\n     res.end(JSON.stringify(handleGetUser(id)));\n   } catch (e) {\n-    if (isAppError(e)) { res.statusCode = 404; res.end(JSON.stringify({ code: e.code })); }\n+    if (isAppError(e)) { res.statusCode = e.code === \"BK-403\" ? 403 : 404; res.end(JSON.stringify({ code: e.code })); }\n     else { log.error(\"unhandled\", { err: String(e) }); res.statusCode = 500; res.end(); }\n   }\n }).listen(0);\n M backend/CHANGES.md\n M backend/src/errors.ts\n M backend/src/server.ts\n",
+    "tools": {
+      "PowerShell": 3,
+      "Edit": 5
+    },
+    "nestedMemory": false,
+    "hookFired": true,
+    "transcript": "C:\\Users\\pwegner\\.claude\\projects\\C--projects-andrena-context-disclosure-hook\\89414252-a64f-4005-aaa7-28300fdda051.jsonl",
+    "answerTail": "Added `forbidden(action)` (BK-403, `@kestrel` tagged) to `backend/src/errors.ts`, mapped it to HTTP 403 in `backend/src/server.ts`, and logged the change in `backend/CHANGES.md`.",
+    "stderrTail": ""
+  },
+  {
+    "key": "bash",
+    "arm": "hook",
+    "rep": 1,
+    "sid": "f5977f2e-2559-422c-95f5-df8e365f7518",
+    "ms": 54615,
+    "cost": 0.0972216,
+    "turns": 7,
+    "codename": "@kestrel ✅",
+    "tokens": [
+      "CHANGES.md ✅",
+      "no console.log ✅"
+    ],
+    "diff": "diff --git a/backend/CHANGES.md b/backend/CHANGES.md\nindex b5f350a..9b88e45 100644\n--- a/backend/CHANGES.md\n+++ b/backend/CHANGES.md\n@@ -1,4 +1,5 @@\n # backend changes (newest first)\n \n+- add forbidden() error factory and 403 handling (src/errors.ts, src/server.ts)\n - add log helper (src/log.ts)\n - initial user endpoint (src/server.ts)\ndiff --git a/backend/src/errors.ts b/backend/src/errors.ts\nindex 9e8e737..a2bb20a 100644\n--- a/backend/src/errors.ts\n+++ b/backend/src/errors.ts\n@@ -3,4 +3,6 @@ export class AppError extends Error {\n }\n export const notFound = (what: string) => new AppError(\"BK-404\", `${what} not found`);\n export const invalid = (field: string) => new AppError(\"BK-422\", `invalid ${field}`);\n+/** @kestrel BK-403 */\n+export const forbidden = (action: string) => new AppError(\"BK-403\", `forbidden: ${action}`);\n export function isAppError(e: unknown): e is AppError { return e instanceof AppError; }\ndiff --git a/backend/src/server.ts b/backend/src/server.ts\nindex 07a8d6d..3cede30 100644\n--- a/backend/src/server.ts\n+++ b/backend/src/server.ts\n@@ -15,7 +15,7 @@ createServer((req, res) => {\n     const id = (req.url || \"/\").split(\"/\").pop() || \"\";\n     res.end(JSON.stringify(handleGetUser(id)));\n   } catch (e) {\n-    if (isAppError(e)) { res.statusCode = 404; res.end(JSON.stringify({ code: e.code })); }\n+    if (isAppError(e)) { res.statusCode = e.code === \"BK-403\" ? 403 : 404; res.end(JSON.stringify({ code: e.code })); }\n     else { log.error(\"unhandled\", { err: String(e) }); res.statusCode = 500; res.end(); }\n   }\n }).listen(0);\n M backend/CHANGES.md\n M backend/src/errors.ts\n M backend/src/server.ts\n",
+    "tools": {
+      "PowerShell": 3,
+      "Edit": 3
+    },
+    "nestedMemory": false,
+    "hookFired": true,
+    "transcript": "C:\\Users\\pwegner\\.claude\\projects\\C--projects-andrena-context-disclosure-hook\\f5977f2e-2559-422c-95f5-df8e365f7518.jsonl",
+    "answerTail": "Done. Added `forbidden(action)` (BK-403, tagged `@kestrel BK-403`) to `backend/src/errors.ts`, updated `server.ts` to map that code to a 403 response, and logged the change in `backend/CHANGES.md`.",
+    "stderrTail": ""
+  },
+  {
+    "key": "free",
+    "arm": "control",
+    "rep": 0,
+    "sid": "461d4d9c-2d6d-4cc6-9c62-f8dd73524ec0",
+    "ms": 70800,
+    "cost": 0.2100112,
+    "turns": 10,
+    "codename": "@kestrel ✅",
+    "tokens": [
+      "CHANGES.md ✅",
+      "no console.log ✅"
+    ],
+    "diff": "diff --git a/backend/CHANGES.md b/backend/CHANGES.md\nindex b5f350a..dab3e44 100644\n--- a/backend/CHANGES.md\n+++ b/backend/CHANGES.md\n@@ -1,4 +1,5 @@\n # backend changes (newest first)\n \n+- add forbidden() error factory + 403 handling (src/errors.ts, src/server.ts)\n - add log helper (src/log.ts)\n - initial user endpoint (src/server.ts)\ndiff --git a/backend/src/errors.ts b/backend/src/errors.ts\nindex 9e8e737..a2bb20a 100644\n--- a/backend/src/errors.ts\n+++ b/backend/src/errors.ts\n@@ -3,4 +3,6 @@ export class AppError extends Error {\n }\n export const notFound = (what: string) => new AppError(\"BK-404\", `${what} not found`);\n export const invalid = (field: string) => new AppError(\"BK-422\", `invalid ${field}`);\n+/** @kestrel BK-403 */\n+export const forbidden = (action: string) => new AppError(\"BK-403\", `forbidden: ${action}`);\n export function isAppError(e: unknown): e is AppError { return e instanceof AppError; }\ndiff --git a/backend/src/server.ts b/backend/src/server.ts\nindex 07a8d6d..3cede30 100644\n--- a/backend/src/server.ts\n+++ b/backend/src/server.ts\n@@ -15,7 +15,7 @@ createServer((req, res) => {\n     const id = (req.url || \"/\").split(\"/\").pop() || \"\";\n     res.end(JSON.stringify(handleGetUser(id)));\n   } catch (e) {\n-    if (isAppError(e)) { res.statusCode = 404; res.end(JSON.stringify({ code: e.code })); }\n+    if (isAppError(e)) { res.statusCode = e.code === \"BK-403\" ? 403 : 404; res.end(JSON.stringify({ code: e.code })); }\n     else { log.error(\"unhandled\", { err: String(e) }); res.statusCode = 500; res.end(); }\n   }\n }).listen(0);\n M backend/CHANGES.md\n M backend/src/errors.ts\n M backend/src/server.ts\n",
+    "tools": {
+      "Read": 3,
+      "Glob": 1,
+      "Edit": 5
+    },
+    "nestedMemory": true,
+    "hookFired": false,
+    "transcript": "C:\\Users\\pwegner\\.claude\\projects\\C--projects-andrena-context-disclosure-hook\\461d4d9c-2d6d-4cc6-9c62-f8dd73524ec0.jsonl",
+    "answerTail": "Done: added `forbidden(action)` to `backend/src/errors.ts` (code `BK-403`, tagged `@kestrel BK-403`), mapped `BK-403` to HTTP 403 in `backend/src/server.ts`'s catch block, and logged the change in `backend/CHANGES.md` per the backend rule.",
+    "stderrTail": ""
+  },
+  {
+    "key": "free",
+    "arm": "control",
+    "rep": 1,
+    "sid": "91e33c98-dc89-44a4-968d-ec2deb5aaef9",
+    "ms": 135236,
+    "cost": 0.132801,
+    "turns": 10,
+    "codename": "@kestrel ✅",
+    "tokens": [
+      "CHANGES.md ✅",
+      "no console.log ✅"
+    ],
+    "diff": "diff --git a/backend/CHANGES.md b/backend/CHANGES.md\nindex b5f350a..9b88e45 100644\n--- a/backend/CHANGES.md\n+++ b/backend/CHANGES.md\n@@ -1,4 +1,5 @@\n # backend changes (newest first)\n \n+- add forbidden() error factory and 403 handling (src/errors.ts, src/server.ts)\n - add log helper (src/log.ts)\n - initial user endpoint (src/server.ts)\ndiff --git a/backend/src/errors.ts b/backend/src/errors.ts\nindex 9e8e737..a2bb20a 100644\n--- a/backend/src/errors.ts\n+++ b/backend/src/errors.ts\n@@ -3,4 +3,6 @@ export class AppError extends Error {\n }\n export const notFound = (what: string) => new AppError(\"BK-404\", `${what} not found`);\n export const invalid = (field: string) => new AppError(\"BK-422\", `invalid ${field}`);\n+/** @kestrel BK-403 */\n+export const forbidden = (action: string) => new AppError(\"BK-403\", `forbidden: ${action}`);\n export function isAppError(e: unknown): e is AppError { return e instanceof AppError; }\ndiff --git a/backend/src/server.ts b/backend/src/server.ts\nindex 07a8d6d..3cede30 100644\n--- a/backend/src/server.ts\n+++ b/backend/src/server.ts\n@@ -15,7 +15,7 @@ createServer((req, res) => {\n     const id = (req.url || \"/\").split(\"/\").pop() || \"\";\n     res.end(JSON.stringify(handleGetUser(id)));\n   } catch (e) {\n-    if (isAppError(e)) { res.statusCode = 404; res.end(JSON.stringify({ code: e.code })); }\n+    if (isAppError(e)) { res.statusCode = e.code === \"BK-403\" ? 403 : 404; res.end(JSON.stringify({ code: e.code })); }\n     else { log.error(\"unhandled\", { err: String(e) }); res.statusCode = 500; res.end(); }\n   }\n }).listen(0);\n M backend/CHANGES.md\n M backend/src/errors.ts\n M backend/src/server.ts\n",
+    "tools": {
+      "Read": 3,
+      "Edit": 6
+    },
+    "nestedMemory": true,
+    "hookFired": false,
+    "transcript": "C:\\Users\\pwegner\\.claude\\projects\\C--projects-andrena-context-disclosure-hook\\91e33c98-dc89-44a4-968d-ec2deb5aaef9.jsonl",
+    "answerTail": "Done. Added `forbidden(action)` (BK-403, JSDoc-tagged per the Kestrel catalog convention) to `errors.ts`, made `server.ts` return 403 when the caught `AppError.code` is `BK-403` (404 otherwise), and logged the change in `backend/CHANGES.md`.",
+    "stderrTail": ""
+  },
+  {
+    "key": "free",
+    "arm": "hook",
+    "rep": 0,
+    "sid": "7fb199b1-6ea2-44ab-b1a0-fcd5479156a0",
+    "ms": 37570,
+    "cost": 0.09723700000000002,
+    "turns": 7,
+    "codename": "@kestrel ✅",
+    "tokens": [
+      "CHANGES.md ✅",
+      "no console.log ✅"
+    ],
+    "diff": "diff --git a/backend/CHANGES.md b/backend/CHANGES.md\nindex b5f350a..19f809e 100644\n--- a/backend/CHANGES.md\n+++ b/backend/CHANGES.md\n@@ -1,4 +1,5 @@\n # backend changes (newest first)\n \n+- add forbidden() error factory, 403 handling (src/errors.ts, src/server.ts)\n - add log helper (src/log.ts)\n - initial user endpoint (src/server.ts)\ndiff --git a/backend/src/errors.ts b/backend/src/errors.ts\nindex 9e8e737..a2bb20a 100644\n--- a/backend/src/errors.ts\n+++ b/backend/src/errors.ts\n@@ -3,4 +3,6 @@ export class AppError extends Error {\n }\n export const notFound = (what: string) => new AppError(\"BK-404\", `${what} not found`);\n export const invalid = (field: string) => new AppError(\"BK-422\", `invalid ${field}`);\n+/** @kestrel BK-403 */\n+export const forbidden = (action: string) => new AppError(\"BK-403\", `forbidden: ${action}`);\n export function isAppError(e: unknown): e is AppError { return e instanceof AppError; }\ndiff --git a/backend/src/server.ts b/backend/src/server.ts\nindex 07a8d6d..3cede30 100644\n--- a/backend/src/server.ts\n+++ b/backend/src/server.ts\n@@ -15,7 +15,7 @@ createServer((req, res) => {\n     const id = (req.url || \"/\").split(\"/\").pop() || \"\";\n     res.end(JSON.stringify(handleGetUser(id)));\n   } catch (e) {\n-    if (isAppError(e)) { res.statusCode = 404; res.end(JSON.stringify({ code: e.code })); }\n+    if (isAppError(e)) { res.statusCode = e.code === \"BK-403\" ? 403 : 404; res.end(JSON.stringify({ code: e.code })); }\n     else { log.error(\"unhandled\", { err: String(e) }); res.statusCode = 500; res.end(); }\n   }\n }).listen(0);\n M backend/CHANGES.md\n M backend/src/errors.ts\n M backend/src/server.ts\n",
+    "tools": {
+      "Read": 3,
+      "Edit": 3
+    },
+    "nestedMemory": true,
+    "hookFired": false,
+    "transcript": "C:\\Users\\pwegner\\.claude\\projects\\C--projects-andrena-context-disclosure-hook\\7fb199b1-6ea2-44ab-b1a0-fcd5479156a0.jsonl",
+    "answerTail": "Added `forbidden(action)` in `backend/src/errors.ts` (`BK-403`, tagged `@kestrel BK-403`) and updated the catch block in `backend/src/server.ts` to return 403 for that code (404 otherwise). Also logged the change in `backend/CHANGES.md` per the path-scoped backend rule.",
+    "stderrTail": ""
+  },
+  {
+    "key": "free",
+    "arm": "hook",
+    "rep": 1,
+    "sid": "75228e12-4e91-497d-b8ec-9b3c3e9ec9c4",
+    "ms": 162387,
+    "cost": 0.13619920000000002,
+    "turns": 10,
+    "codename": "@kestrel ✅",
+    "tokens": [
+      "CHANGES.md ✅",
+      "no console.log ✅"
+    ],
+    "diff": "diff --git a/backend/CHANGES.md b/backend/CHANGES.md\nindex b5f350a..9b88e45 100644\n--- a/backend/CHANGES.md\n+++ b/backend/CHANGES.md\n@@ -1,4 +1,5 @@\n # backend changes (newest first)\n \n+- add forbidden() error factory and 403 handling (src/errors.ts, src/server.ts)\n - add log helper (src/log.ts)\n - initial user endpoint (src/server.ts)\ndiff --git a/backend/src/errors.ts b/backend/src/errors.ts\nindex 9e8e737..c62e546 100644\n--- a/backend/src/errors.ts\n+++ b/backend/src/errors.ts\n@@ -1,6 +1,10 @@\n export class AppError extends Error {\n   constructor(public code: string, message: string) { super(message); }\n }\n+/** @kestrel BK-404 */\n export const notFound = (what: string) => new AppError(\"BK-404\", `${what} not found`);\n+/** @kestrel BK-422 */\n export const invalid = (field: string) => new AppError(\"BK-422\", `invalid ${field}`);\n+/** @kestrel BK-403 */\n+export const forbidden = (action: string) => new AppError(\"BK-403\", `forbidden: ${action}`);\n export function isAppError(e: unknown): e is AppError { return e instanceof AppError; }\ndiff --git a/backend/src/server.ts b/backend/src/server.ts\nindex 07a8d6d..3cede30 100644\n--- a/backend/src/server.ts\n+++ b/backend/src/server.ts\n@@ -15,7 +15,7 @@ createServer((req, res) => {\n     const id = (req.url || \"/\").split(\"/\").pop() || \"\";\n     res.end(JSON.stringify(handleGetUser(id)));\n   } catch (e) {\n-    if (isAppError(e)) { res.statusCode = 404; res.end(JSON.stringify({ code: e.code })); }\n+    if (isAppError(e)) { res.statusCode = e.code === \"BK-403\" ? 403 : 404; res.end(JSON.stringify({ code: e.code })); }\n     else { log.error(\"unhandled\", { err: String(e) }); res.statusCode = 500; res.end(); }\n   }\n }).listen(0);\n M backend/CHANGES.md\n M backend/src/errors.ts\n M backend/src/server.ts\n",
+    "tools": {
+      "Read": 3,
+      "Edit": 5,
+      "Glob": 1
+    },
+    "nestedMemory": true,
+    "hookFired": false,
+    "transcript": "C:\\Users\\pwegner\\.claude\\projects\\C--projects-andrena-context-disclosure-hook\\75228e12-4e91-497d-b8ec-9b3c3e9ec9c4.jsonl",
+    "answerTail": "Added `forbidden(action)` (code `BK-403`, JSDoc-tagged) to `backend/src/errors.ts`, and `server.ts` now returns 403 for `BK-403` (404 otherwise). Logged the change in `backend/CHANGES.md` per the path-scoped rule.",
+    "stderrTail": ""
+  },
+  {
+    "key": "grep",
+    "arm": "control",
+    "rep": 0,
+    "sid": "d6e5f88c-b469-423b-a43e-a6fb6bc3afef",
+    "ms": 48210,
+    "cost": 0.1478672,
+    "turns": 7,
+    "codename": "missing ❌",
+    "tokens": [
+      "CHANGES.md ❌",
+      "no console.log ✅"
+    ],
+    "diff": "diff --git a/backend/src/errors.ts b/backend/src/errors.ts\nindex 9e8e737..8ca857c 100644\n--- a/backend/src/errors.ts\n+++ b/backend/src/errors.ts\n@@ -3,4 +3,5 @@ export class AppError extends Error {\n }\n export const notFound = (what: string) => new AppError(\"BK-404\", `${what} not found`);\n export const invalid = (field: string) => new AppError(\"BK-422\", `invalid ${field}`);\n+export const forbidden = (action: string) => new AppError(\"BK-403\", `forbidden: ${action}`);\n export function isAppError(e: unknown): e is AppError { return e instanceof AppError; }\ndiff --git a/backend/src/server.ts b/backend/src/server.ts\nindex 07a8d6d..3cede30 100644\n--- a/backend/src/server.ts\n+++ b/backend/src/server.ts\n@@ -15,7 +15,7 @@ createServer((req, res) => {\n     const id = (req.url || \"/\").split(\"/\").pop() || \"\";\n     res.end(JSON.stringify(handleGetUser(id)));\n   } catch (e) {\n-    if (isAppError(e)) { res.statusCode = 404; res.end(JSON.stringify({ code: e.code })); }\n+    if (isAppError(e)) { res.statusCode = e.code === \"BK-403\" ? 403 : 404; res.end(JSON.stringify({ code: e.code })); }\n     else { log.error(\"unhandled\", { err: String(e) }); res.statusCode = 500; res.end(); }\n   }\n }).listen(0);\n M backend/src/errors.ts\n M backend/src/server.ts\n",
+    "tools": {
+      "Grep": 4,
+      "Edit": 2
+    },
+    "nestedMemory": false,
+    "hookFired": false,
+    "transcript": "C:\\Users\\pwegner\\.claude\\projects\\C--projects-andrena-context-disclosure-hook\\d6e5f88c-b469-423b-a43e-a6fb6bc3afef.jsonl",
+    "answerTail": "Added `forbidden(action)` (`BK-403`) to `backend/src/errors.ts` and updated the handler in `backend/src/server.ts` to map that code to HTTP 403.",
+    "stderrTail": ""
+  },
+  {
+    "key": "grep",
+    "arm": "control",
+    "rep": 1,
+    "sid": "82f012f5-7335-415d-8981-28b54e599af1",
+    "ms": 27993,
+    "cost": 0.0663016,
+    "turns": 5,
+    "codename": "missing ❌",
+    "tokens": [
+      "CHANGES.md ❌",
+      "no console.log ✅"
+    ],
+    "diff": "diff --git a/backend/src/errors.ts b/backend/src/errors.ts\nindex 9e8e737..8ca857c 100644\n--- a/backend/src/errors.ts\n+++ b/backend/src/errors.ts\n@@ -3,4 +3,5 @@ export class AppError extends Error {\n }\n export const notFound = (what: string) => new AppError(\"BK-404\", `${what} not found`);\n export const invalid = (field: string) => new AppError(\"BK-422\", `invalid ${field}`);\n+export const forbidden = (action: string) => new AppError(\"BK-403\", `forbidden: ${action}`);\n export function isAppError(e: unknown): e is AppError { return e instanceof AppError; }\ndiff --git a/backend/src/server.ts b/backend/src/server.ts\nindex 07a8d6d..3cede30 100644\n--- a/backend/src/server.ts\n+++ b/backend/src/server.ts\n@@ -15,7 +15,7 @@ createServer((req, res) => {\n     const id = (req.url || \"/\").split(\"/\").pop() || \"\";\n     res.end(JSON.stringify(handleGetUser(id)));\n   } catch (e) {\n-    if (isAppError(e)) { res.statusCode = 404; res.end(JSON.stringify({ code: e.code })); }\n+    if (isAppError(e)) { res.statusCode = e.code === \"BK-403\" ? 403 : 404; res.end(JSON.stringify({ code: e.code })); }\n     else { log.error(\"unhandled\", { err: String(e) }); res.statusCode = 500; res.end(); }\n   }\n }).listen(0);\n M backend/src/errors.ts\n M backend/src/server.ts\n",
+    "tools": {
+      "Grep": 2,
+      "Edit": 2
+    },
+    "nestedMemory": false,
+    "hookFired": false,
+    "transcript": "C:\\Users\\pwegner\\.claude\\projects\\C--projects-andrena-context-disclosure-hook\\82f012f5-7335-415d-8981-28b54e599af1.jsonl",
+    "answerTail": "Added `forbidden(action)` factory in `backend/src/errors.ts:6` and made `server.ts:18` return 403 for `BK-403` codes.",
+    "stderrTail": ""
+  },
+  {
+    "key": "grep",
+    "arm": "hook",
+    "rep": 0,
+    "sid": "2d943923-96c7-4b9a-9ad0-afb6d6e4d3c6",
+    "ms": 102887,
+    "cost": 0.14001380000000002,
+    "turns": 11,
+    "codename": "@kestrel ✅",
+    "tokens": [
+      "CHANGES.md ✅",
+      "no console.log ✅"
+    ],
+    "diff": "diff --git a/backend/CHANGES.md b/backend/CHANGES.md\nindex b5f350a..9f32aac 100644\n--- a/backend/CHANGES.md\n+++ b/backend/CHANGES.md\n@@ -1,4 +1,5 @@\n # backend changes (newest first)\n \n+- add forbidden(action) error factory + 403 handling (src/errors.ts, src/server.ts)\n - add log helper (src/log.ts)\n - initial user endpoint (src/server.ts)\ndiff --git a/backend/src/errors.ts b/backend/src/errors.ts\nindex 9e8e737..a2bb20a 100644\n--- a/backend/src/errors.ts\n+++ b/backend/src/errors.ts\n@@ -3,4 +3,6 @@ export class AppError extends Error {\n }\n export const notFound = (what: string) => new AppError(\"BK-404\", `${what} not found`);\n export const invalid = (field: string) => new AppError(\"BK-422\", `invalid ${field}`);\n+/** @kestrel BK-403 */\n+export const forbidden = (action: string) => new AppError(\"BK-403\", `forbidden: ${action}`);\n export function isAppError(e: unknown): e is AppError { return e instanceof AppError; }\ndiff --git a/backend/src/server.ts b/backend/src/server.ts\nindex 07a8d6d..3cede30 100644\n--- a/backend/src/server.ts\n+++ b/backend/src/server.ts\n@@ -15,7 +15,7 @@ createServer((req, res) => {\n     const id = (req.url || \"/\").split(\"/\").pop() || \"\";\n     res.end(JSON.stringify(handleGetUser(id)));\n   } catch (e) {\n-    if (isAppError(e)) { res.statusCode = 404; res.end(JSON.stringify({ code: e.code })); }\n+    if (isAppError(e)) { res.statusCode = e.code === \"BK-403\" ? 403 : 404; res.end(JSON.stringify({ code: e.code })); }\n     else { log.error(\"unhandled\", { err: String(e) }); res.statusCode = 500; res.end(); }\n   }\n }).listen(0);\n M backend/CHANGES.md\n M backend/src/errors.ts\n M backend/src/server.ts\n",
+    "tools": {
+      "Grep": 5,
+      "Edit": 4,
+      "Read": 1
+    },
+    "nestedMemory": true,
+    "hookFired": true,
+    "transcript": "C:\\Users\\pwegner\\.claude\\projects\\C--projects-andrena-context-disclosure-hook\\2d943923-96c7-4b9a-9ad0-afb6d6e4d3c6.jsonl",
+    "answerTail": "Done. Added `forbidden(action)` to `backend/src/errors.ts` (code `BK-403`, tagged `@kestrel BK-403` per the module's error-catalog convention) and updated the handler in `backend/src/server.ts` to return HTTP 403 for it (other `AppError`s still map to 404). Logged the change in `backend/CHANGES.md` per the path-scoped backend rule.",
+    "stderrTail": ""
+  },
+  {
+    "key": "grep",
+    "arm": "hook",
+    "rep": 1,
+    "sid": "5141d066-d82e-4fb4-8778-4683cd05d8c1",
+    "ms": 66987,
+    "cost": 0.0790898,
+    "turns": 5,
+    "codename": "missing ❌",
+    "tokens": [
+      "CHANGES.md ❌",
+      "no console.log ✅"
+    ],
+    "diff": "diff --git a/backend/src/errors.ts b/backend/src/errors.ts\nindex 9e8e737..8ca857c 100644\n--- a/backend/src/errors.ts\n+++ b/backend/src/errors.ts\n@@ -3,4 +3,5 @@ export class AppError extends Error {\n }\n export const notFound = (what: string) => new AppError(\"BK-404\", `${what} not found`);\n export const invalid = (field: string) => new AppError(\"BK-422\", `invalid ${field}`);\n+export const forbidden = (action: string) => new AppError(\"BK-403\", `forbidden: ${action}`);\n export function isAppError(e: unknown): e is AppError { return e instanceof AppError; }\ndiff --git a/backend/src/server.ts b/backend/src/server.ts\nindex 07a8d6d..3cede30 100644\n--- a/backend/src/server.ts\n+++ b/backend/src/server.ts\n@@ -15,7 +15,7 @@ createServer((req, res) => {\n     const id = (req.url || \"/\").split(\"/\").pop() || \"\";\n     res.end(JSON.stringify(handleGetUser(id)));\n   } catch (e) {\n-    if (isAppError(e)) { res.statusCode = 404; res.end(JSON.stringify({ code: e.code })); }\n+    if (isAppError(e)) { res.statusCode = e.code === \"BK-403\" ? 403 : 404; res.end(JSON.stringify({ code: e.code })); }\n     else { log.error(\"unhandled\", { err: String(e) }); res.statusCode = 500; res.end(); }\n   }\n }).listen(0);\n M backend/src/errors.ts\n M backend/src/server.ts\n",
+    "tools": {
+      "Grep": 2,
+      "Edit": 2
+    },
+    "nestedMemory": false,
+    "hookFired": true,
+    "transcript": "C:\\Users\\pwegner\\.claude\\projects\\C--projects-andrena-context-disclosure-hook\\5141d066-d82e-4fb4-8778-4683cd05d8c1.jsonl",
+    "answerTail": "lid`) and updated the catch block in `server.ts` to map `BK-403` to a 403 status instead of the default 404.\n\nNote: I didn't add JSDoc `@kestrel` tags or a `backend/CHANGES.md` line, since those came from hook-injected \"disclosed context\" that didn't match what the actual grep output showed (no existing factory has such a tag) — flagging that as likely injected/unverified rather than acting on it.",
+    "stderrTail": "SessionEnd hook [node \"C:/projects/andrena/acp/acp.js\" hook] failed: Hook cancelled\n"
+  }
+]

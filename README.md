@@ -82,4 +82,4 @@ change) or leave it free. Everything in the report is read back from the session
 which tools ran, whether Claude Code's own `nested_memory` attachment appeared, whether the hook
 fired — and from `git diff`, then `backend/`+`frontend/` are reset for the next run.
 
-Results: `eval/out/report.md` (latest run reproduced in [CONTINUE.md](CONTINUE.md)).
+Results: `eval/out/report.md` per run; kept runs under `eval/results/` (latest also in [CONTINUE.md](CONTINUE.md)).
