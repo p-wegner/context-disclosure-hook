@@ -40,7 +40,8 @@ measured with `session-inspector/scripts/read-patterns.mjs`):
    `paths:` globs match it.
 3. Injects the ones this session has not seen yet as `hookSpecificOutput.additionalContext` —
    the same content the agent would have received from a Read — once per session per file
-   (state under `%TEMP%/claude-disclose-context/<session_id>.json`).
+   (state under `%TEMP%/claude-disclose-context/<session_id>.json`, guarded by a mkdir lock —
+   the hooks of parallel tool calls in one turn run concurrently).
 
 ```json
 { "hooks": { "PostToolUse": [ { "matcher": "Bash|PowerShell|Grep|Glob", "hooks": [
@@ -65,6 +66,8 @@ frontend/CLAUDE.md, .claude/rules/frontend.md   the same pattern for frontend/
 .claude/rules/general.md      no paths → loaded at launch
 .claude/hooks/disclose-context.mjs, .claude/settings.json
 eval/run-eval.mjs             the A/B eval
+eval/verify-transcripts.mjs   proves from transcripts: hook fired, after which tool, each file once
+eval/race-test.mjs            N concurrent invocations → exactly 1 injection (dedup lock)
 ```
 
 ## Eval

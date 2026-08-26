@@ -38,11 +38,23 @@ not disclosure). Free arms use Read → Claude Code's own injection works, both 
 The cleanest proof is `bash/hook`: `nested_memory=false`, hook=true, both conventions followed — the
 agent never used Read and still got the guidance.
 
+## Verification of the hook itself
+
+- `node eval/verify-transcripts.mjs [results.json]` — reads each run's transcript: every
+  `hook_additional_context` attachment, the tool call that triggered it, the `<disclosed-context
+  source>` files, per-file counts (dupes) and `hook_non_blocking_error`s. On the kept run: hook
+  arms with Grep/shell touches fired 4/4, after the first Grep/PowerShell call touching
+  `backend/`; free arms (Read only) correctly never fired; zero hook errors.
+- `node eval/race-test.mjs [N]` — concurrency/dedup check, exit 1 unless exactly one injects.
+
 ## Known limits / not verified
 
-- Per-session dedup races when the agent issues several Grep/Bash calls in ONE turn (hooks run in
-  parallel, each reads the state file before the other writes) → the same guidance can be injected
-  twice. Harmless, costs tokens; fix = lock file or `mkdir`-as-lock.
+- ~~Per-session dedup race~~ **fixed** (mkdir-as-lock around the state read-modify-write).
+  Verified two ways: `node eval/verify-transcripts.mjs` over the 12 eval transcripts showed the
+  race once (grep/hook rep1: `backend/CLAUDE.md` + rule injected twice, two Grep calls in one
+  turn, hooks finished 63 ms apart — every other hook-arm run injected each file exactly once);
+  `node eval/race-test.mjs 16` (16 concurrent invocations, one session) injects exactly 1 with
+  the fix vs 5 of 8 with the pre-fix hook.
 - Two earlier full runs (`eval/out-run1-brokenhookpath`, `eval/out-run2-brokenhookpath`, gitignored)
   had the hook failing on path resolution — `$CLAUDE_PROJECT_DIR` is empty in `claude -p` and Claude
   Code pre-expands it, so `${VAR:-.}` doesn't help; only a plain relative path works.

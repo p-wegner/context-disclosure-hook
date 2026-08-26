@@ -21,7 +21,7 @@
  *   DISCLOSE_ALL_TOOLS=1 also handle Read/Edit/Write (normally Claude Code covers those)
  *   DISCLOSE_DISABLED=1  no-op (the control arm of the eval)
  */
-import { readFileSync, writeFileSync, existsSync, statSync, readdirSync, mkdirSync } from "node:fs";
+import { readFileSync, writeFileSync, existsSync, statSync, readdirSync, mkdirSync, rmSync } from "node:fs";
 import { dirname, join, resolve, relative, sep, isAbsolute } from "node:path";
 import { homedir, tmpdir } from "node:os";
 
@@ -43,8 +43,13 @@ async function main() {
   const touched = touchedPaths(input, cwd, root);
   if (!touched.length) { log(`${tool}: no paths`); return; }
 
-  const state = loadState(input.session_id);
+  // Hooks for several tool calls in ONE turn run concurrently; without a lock both read the
+  // state file before either writes it and the same guidance is injected twice (seen in eval:
+  // two Grep calls, hooks finished 63 ms apart). mkdir is atomic on every OS, so it is the lock.
   const docs = []; // {file, reason}
+  const unlock = lockState(input.session_id);
+  try {
+  const state = loadState(input.session_id);
   const seen = new Set(state.injected);
 
   for (const p of touched) {
@@ -64,6 +69,7 @@ async function main() {
 
   state.injected = [...seen];
   saveState(input.session_id, state);
+  } finally { unlock(); }
 
   const blocks = docs.map((d) => {
     const body = readFileSync(d.file, "utf8").replace(/^---[\s\S]*?---\s*/, ""); // strip frontmatter
@@ -193,6 +199,20 @@ function stateFile(sid) {
   const dir = process.env.DISCLOSE_STATE_DIR || join(tmpdir(), "claude-disclose-context");
   mkdirSync(dir, { recursive: true });
   return join(dir, `${(sid || "nosession").replace(/[^\w-]/g, "_")}.json`);
+}
+function lockState(sid) {
+  // mkdir-as-lock: atomic create, held for the read-modify-write of the state file only.
+  const dir = stateFile(sid) + ".lock";
+  const deadline = Date.now() + 3000;
+  for (;;) {
+    try { mkdirSync(dir); break; } catch (e) {
+      if (e.code !== "EEXIST") return () => {};
+      let stale = false; try { stale = Date.now() - statSync(dir).mtimeMs > 5000; } catch { stale = true; }
+      if (stale || Date.now() > deadline) { try { rmSync(dir, { recursive: true, force: true }); } catch { /* ignore */ } continue; }
+      Atomics.wait(new Int32Array(new SharedArrayBuffer(4)), 0, 0, 15); // sleep 15 ms, no async needed
+    }
+  }
+  return () => { try { rmSync(dir, { recursive: true, force: true }); } catch { /* ignore */ } };
 }
 function loadState(sid) { try { return JSON.parse(readFileSync(stateFile(sid), "utf8")); } catch { return { injected: [] }; } }
 function saveState(sid, s) { try { writeFileSync(stateFile(sid), JSON.stringify(s)); } catch { /* ignore */ } }
