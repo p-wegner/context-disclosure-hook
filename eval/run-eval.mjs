@@ -7,7 +7,7 @@
  *   control — hook installed but DISCLOSE_DISABLED=1 (identical settings, hook is a no-op)
  *   hook    — hook active
  * Prompts force a read style (bash-only / grep-tool-only) or leave it free, and ask for
- * canary facts that exist ONLY in backend/CLAUDE.md and .claude/rules/backend.md.
+ * conventions that exist ONLY in backend/CLAUDE.md and .claude/rules/backend.md.
  *
  * Verdict per run: canaries present in the answer? which tools the agent used? did Claude
  * Code itself inject a nested_memory attachment? did the hook fire? — all read back from the
@@ -30,15 +30,17 @@ const REPS = Number(args.reps || 1);
 const CONC = Number(args.concurrency || 1);
 const PROMPT_KEYS = String(args.prompts || "bash,grep,free").split(",");
 
-const QUESTION = `Then answer these from project guidance (CLAUDE.md files, .claude/rules): ` +
-  `(a) the codename of the backend module, (b) every rule canary token that applies to backend files. ` +
-  `If you did not see the information, answer UNKNOWN — do not guess. ` +
-  `Final line must be JSON: {"codename": ..., "tokens": [...]}`;
+// The task never mentions CLAUDE.md or rules. Two conventions are NOT inferable from the code:
+//   backend/CLAUDE.md        → every exported error factory carries `/** @kestrel <code> */`
+//   .claude/rules/backend.md → every change under backend/ adds a line to backend/CHANGES.md
+const TASK = "Add an exported error factory forbidden(action: string) (HTTP 403 semantics) to backend/src/errors.ts, " +
+  "following the conventions of that file, and make the request handler in backend/src/server.ts return 403 for it. " +
+  "Keep the change minimal and do not ask questions.";
 
 const PROMPTS = {
-  bash: `Use ONLY the Bash tool (no Read, Grep, Glob or other tools). With grep/sed/cat, find where AppError is defined under backend/ and print its constructor signature. ${QUESTION}`,
-  grep: `Use ONLY the Grep tool (no Read, no Bash, no Glob). Find where AppError is defined under backend/ and show the matching lines with context. ${QUESTION}`,
-  free: `Find where AppError is defined under backend/ and show me its constructor signature. ${QUESTION}`,
+  bash: "Use ONLY the Bash tool for reading and writing (no Read, Grep, Glob, Edit or Write tools — use cat/grep/sed and heredocs). " + TASK,
+  grep: "For orientation use ONLY the Grep tool (no Read, no Bash, no Glob); then apply the change with the Edit tool. " + TASK,
+  free: TASK,
 };
 
 mkdirSync(OUT, { recursive: true });
@@ -52,7 +54,7 @@ await Promise.all(Array.from({ length: CONC }, async () => {
 }));
 
 // ---- report
-const lines = [`# Eval — model ${MODEL}, ${results.length} runs\n`, `| prompt | arm | codename | tokens | tools used | CC nested_memory | hook fired | turns | cost |`, `|---|---|---|---|---|---|---|---|---|`];
+const lines = [`# Eval — model ${MODEL}, ${results.length} runs\n`, `| prompt | arm | @kestrel tag (nested CLAUDE.md) | rule conventions | tools used | CC nested_memory | hook fired | turns | cost |`, `|---|---|---|---|---|---|---|---|---|`];
 for (const r of results.sort((a, b) => a.key.localeCompare(b.key) || a.arm.localeCompare(b.arm))) {
   lines.push(`| ${r.key} | ${r.arm} | ${r.codename} | ${r.tokens.join(" ") || "—"} | ${Object.entries(r.tools).map(([k, v]) => `${k}×${v}`).join(" ") || "—"} | ${r.nestedMemory} | ${r.hookFired} | ${r.turns} | $${r.cost?.toFixed(3) ?? "?"} |`);
 }
@@ -73,10 +75,16 @@ async function runOne(run) {
   const text = String(out.result || "");
   const transcript = findTranscript(sid);
   const tx = transcript ? analyzeTranscript(transcript) : { tools: {}, nestedMemory: false, hookFired: false };
+  // score the CHANGE, then reset backend/ + frontend/ for the next run (never `checkout -- .`: eval/ may be dirty)
+  const diff = (await exec("git", ["diff", "--", "backend"], { cwd: REPO, env })).stdout +
+    (await exec("git", ["status", "--porcelain", "--", "backend"], { cwd: REPO, env })).stdout;
+  await exec("git", ["checkout", "--", "backend", "frontend"], { cwd: REPO, env });
+  await exec("git", ["clean", "-fdq", "backend", "frontend"], { cwd: REPO, env });
   const res = {
     ...run, sid, ms: Date.now() - t0, cost: out.total_cost_usd, turns: out.num_turns,
-    codename: /kestrel/i.test(text) ? "Kestrel ✅" : /unknown/i.test(text) ? "UNKNOWN" : "other",
-    tokens: [...new Set((text.match(/[A-Z]+-RULE-\d{4}/g) || []))],
+    codename: /@kestrel/i.test(diff) ? "@kestrel ✅" : "missing ❌",
+    tokens: [/CHANGES\.md/.test(diff) ? "CHANGES.md ✅" : "CHANGES.md ❌", /console\.log/.test(diff) ? "console.log ❌" : "no console.log ✅"],
+    diff,
     ...tx, transcript, answerTail: text.slice(-400), stderrTail: stderr.slice(-600),
   };
   console.error(`[${run.key}/${run.arm}] ${res.codename} tokens=${res.tokens} tools=${JSON.stringify(res.tools)} nested=${res.nestedMemory} hook=${res.hookFired} ${res.ms}ms`);
