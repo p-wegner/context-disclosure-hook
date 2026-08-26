@@ -56,6 +56,47 @@ measured with `session-inspector/scripts/read-patterns.mjs`):
 Knobs: `DISCLOSE_LOG=1` (stderr trace), `DISCLOSE_DISABLED=1` (no-op, the eval's control arm),
 `DISCLOSE_ALL_TOOLS=1` (also handle Read/Edit/Write), `DISCLOSE_STATE_DIR`.
 
+## How the matching works — and how it can miss
+
+**Which paths count as "touched".** A path is a candidate if it is a token of the command line
+(split on `&&`, `||`, `;`, `|`; `cd` is tracked per segment; `a=b` yields `b`) or a line/token of the
+tool output (`file:line:` hits, Grep's `filenames`, `ls`/`find` output), **and it exists on disk
+inside the project root**. Existence is the only filter — there is no parsing of the shell, so
+anything the shell computes is invisible: `for f in $(git ls-files backend)`, `src/**/*.ts` globs
+left to the shell, `$VAR/file`, paths quoted with spaces, and paths that only appear on stderr.
+Paths outside the project root (other repos, `~`) are ignored on purpose.
+
+**Which guidance applies to a touched path.**
+- *Nested `CLAUDE.md` / `CLAUDE.local.md`*: every directory from the touched path up to (excluding)
+  the project root, outermost first — the same precedence Claude Code uses.
+- *Rules*: each `.claude/rules/*.md` (project, then `~/.claude/rules`) whose frontmatter `paths:`
+  glob matches the path relative to the root. Supported: `**`, `*`, `?`, `{a,b}`; both the inline
+  `paths: ["a/**", "b/**"]` and the block-list form. A rule *without* `paths:` is skipped — Claude
+  Code already loads it at launch. Matching is against the **file** path, so a glob like
+  `backend/**` matches `backend/src/x.ts` but a touch of the bare directory `backend` (e.g. `ls
+  backend`) does not; use `backend{,/**}` if you want that too.
+- The project root is `$CLAUDE_PROJECT_DIR` when set, else the nearest ancestor of the hook's `cwd` that has
+  `.git` or `.claude`.
+
+**Ways it stays silent when you might expect an injection.**
+- The hook only sees `Bash|PowerShell|Grep|Glob` (per `settings.json`); a touch via Read/Edit/Write
+  is Claude Code's job (`DISCLOSE_ALL_TOOLS=1` to cover those too, at the cost of duplicates).
+- Output is scanned for the first 2000 lines and tokens containing `/`, `\` or `.` — a file named
+  `Makefile` printed alone on a line still matches (whole-line check), but one buried in a
+  long line without a separator does not.
+- Each file is injected **once per session** (state keyed by `session_id`). A file that was already
+  disclosed — or that Claude Code itself loaded via `nested_memory` — is not repeated, so a later
+  touch of the same subtree produces nothing; that is by design, not a failure. The state lives in
+  `%TEMP%` and is not cleared, so a *resumed* session keeps its "already seen" set.
+- Frontmatter must be the very first thing in the rule file (`---` on line 1); YAML beyond the two
+  `paths:` shapes above (anchors, multi-line strings) is not parsed.
+- Edge: a file that exists but is gitignored or generated is still a legitimate touch and will pull
+  in its directory's guidance.
+
+Debug a miss with `DISCLOSE_LOG=1` (one stderr line per invocation: which paths were extracted and
+what was injected or why not) or replay a payload by hand: `echo '{"session_id":"x","tool_name":"Bash",
+"cwd":".","tool_input":{"command":"cat backend/src/errors.ts"}}' | node .claude/hooks/disclose-context.mjs`.
+
 ## Layout
 
 ```
