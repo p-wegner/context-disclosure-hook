@@ -1,0 +1,4 @@
+[bash/control] missing ❌ tokens=CHANGES.md ❌,no console.log ✅ tools={"PowerShell":2,"Edit":2} nested=false hook=false 40148ms
+[bash/hook] @kestrel ✅ tokens=CHANGES.md ✅,no console.log ✅ tools={"PowerShell":4,"Read":1,"Edit":5} nested=true hook=false 64385ms
+[grep/control] missing ❌ tokens=CHANGES.md ❌,no console.log ✅ tools={"Grep":3,"Edit":2} nested=false hook=false 31626ms
+[grep/hook] @kestrel ✅ tokens=CHANGES.md ✅,no console.log ✅ tools={"Grep":3,"Read":2,"Edit":3} nested=true hook=false 43597ms
