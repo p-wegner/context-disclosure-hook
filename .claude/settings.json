@@ -4,7 +4,7 @@
       {
         "matcher": "Bash|PowerShell|Grep|Glob",
         "hooks": [
-          { "type": "command", "command": "node \"${CLAUDE_PROJECT_DIR:-.}/.claude/hooks/disclose-context.mjs\"", "timeout": 10 }
+          { "type": "command", "command": "node .claude/hooks/disclose-context.mjs", "timeout": 10 }
         ]
       }
     ]

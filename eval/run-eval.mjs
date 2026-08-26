@@ -106,7 +106,7 @@ function analyzeTranscript(p) {
   for (const line of readFileSync(p, "utf8").split("\n")) {
     if (!line) continue; let r; try { r = JSON.parse(line); } catch { continue; }
     if (r.type === "attachment" && r.attachment?.type === "nested_memory") nestedMemory = true;
-    if (line.includes("<disclosed-context")) hookFired = true;
+    if (r.type === "attachment" && r.attachment?.type === "hook_additional_context" && line.includes("disclosed-context")) hookFired = true;
     if (r.type === "assistant") for (const b of r.message?.content || []) if (b.type === "tool_use") tools[b.name] = (tools[b.name] || 0) + 1;
   }
   return { tools, nestedMemory, hookFired };
